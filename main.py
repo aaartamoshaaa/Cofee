@@ -13,6 +13,7 @@ class Coffee(QMainWindow):
         self.cur = self.con.cursor()
 
         self.pushButton.clicked.connect(self.update_base)
+        self.pushButton_2.clicked.connect(self.add_item)
         self.drawing = True
         self.initUI()
         self.update_base()
@@ -39,6 +40,64 @@ class Coffee(QMainWindow):
             for s, item in enumerate(lst):
                 self.tableWidget.setItem(i, s, QTableWidgetItem(str(item)))
         self.tableWidget.resizeColumnsToContents()
+
+    def add_item(self):
+        self.add_window = EditCoffee()
+        self.add_window.show()
+
+
+class EditCoffee(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('addEditCoffeeForm.ui', self)
+
+        self.con = sqlite3.connect('coffee.sqlite')
+        self.cur = self.con.cursor()
+
+        self.button_add.clicked.connect(self.add_item)
+
+    def add_item(self):
+        name = self.line_name.text()
+        coffee_id = self.line_id.text()
+        cost = self.line_cost.text()
+        taste = self.line_taste.text()
+        coffee_type = self.line_type.text()
+        size = self.line_size.text()
+        roast = self.line_roast.text()
+
+        if coffee_id:
+            lst = []
+            lst_request = []
+            if name:
+                lst_request.append('name = ?')
+                lst.append(name)
+            if roast:
+                lst_request.append('roast = ?')
+                lst.append(roast)
+            if coffee_type:
+                lst_request.append('type = ?')
+                lst.append(coffee_type)
+            if taste:
+                lst_request.append('taste = ?')
+                lst.append(taste)
+            if cost:
+                lst_request.append('cost = ?')
+                lst.append(cost)
+            if size:
+                lst_request.append('size = ?')
+                lst.append(size)
+            request = '''UPDATE coffee
+                         SET {}
+                         WHERE id = ?'''.format(', '.join(lst_request))
+            self.cur.execute(request, (*lst, coffee_id))
+
+        elif name and cost and taste and coffee_type and size and roast and not coffee_id:
+            self.cur.execute(
+                'INSERT INTO coffee(name, roast, type, taste, cost, size)'
+                ' VALUES(?, ?, ?, ?, ?, ?)', (name, roast, coffee_type,
+                                              taste, int(cost), int(size)))
+        self.con.commit()
+        self.close()
 
 
 if __name__ == '__main__':
